@@ -7,17 +7,18 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import model.User;
 import util.HttpRequestUtils;
 
 public class RequestHandler extends Thread {
-    private static final Logger log = LoggerFactory.getLogger(HttpRequestUtils.class);
+    private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
 
     private Socket connection;
 
@@ -32,17 +33,22 @@ public class RequestHandler extends Thread {
         try (InputStream in = connection.getInputStream();
              OutputStream out = connection.getOutputStream()) {
 
-            BufferedReader br = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
-            String requestLine = br.readLine();
-            if (requestLine == null || requestLine.isBlank()) {
-                return;
-            }
-            String path = HttpRequestUtils.getUrl(requestLine);
-            
-            DataOutputStream dos = new DataOutputStream(out);
+            BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
+            String line = br.readLine();
+            if (line == null) return;
 
-            if ("/".equals(path)) path = "/index.html";
-            byte[] body = Files.readAllBytes(Path.of("webapp", path.substring(1)));
+            String url = HttpRequestUtils.getUrl(line);
+            if (url.startsWith("/user/create")) {
+                int index = url.indexOf("?");
+                String queryString = url.substring(index + 1);
+                Map<String, String> params = HttpRequestUtils.parseQueryString(queryString);
+                User user = new User(params.get("userId"), params.get("password"), params.get("name"), params.get("email"));
+                log.debug("User : {}", user);
+                url = "/index.html";
+            }
+
+            DataOutputStream dos = new DataOutputStream(out);
+            byte[] body = Files.readAllBytes(Path.of("webapp", url.substring(1)));
             response200Header(dos, body.length);
             responseBody(dos, body);
         } catch (IOException e) {
