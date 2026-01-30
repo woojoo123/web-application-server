@@ -40,17 +40,12 @@ public class RequestHandler extends Thread {
             String path = parts[1];
             
             DataOutputStream dos = new DataOutputStream(out);
-            if ("/index.html".equals(path)) {
-                byte[] body = Files.readAllBytes(Path.of("webapp", "index.html"));
-                response200Header(dos, body.length);
-                responseBody(dos, body);
-                return;
-            }
-            log.debug("method={}, path={}", method, path);
 
-            byte[] body = "Hello World!".getBytes();
+            if ("/".equals(path)) path = "/index.html";
+            byte[] body = Files.readAllBytes(Path.of("webapp", path.substring(1)));
             response200Header(dos, body.length);
             responseBody(dos, body);
+            log.debug("method={}, path={}", method, path);
         } catch (IOException e) {
             log.error(e.getMessage());
         }

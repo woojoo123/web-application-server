@@ -43,6 +43,15 @@
 
 이걸 이해하고 나니까, 로그에 /index.html 다음에 /favicon.ico가 따라오고, 그때마다 Thread가 새로 찍히는 게 오히려 자연스럽게 보이기 시작했다.
 
+브라우저가 보내는 요청 경로는 index.html, /login처럼 앞에 /가 붙음.
+그걸 파일 경로로 만들 때 Path.of("webapp", path)에 그대로 넣으면
+"/login"이 절대 경로로 인식돼서 webapp이 무시될 수 있음.
+그래서 path.substring(1)로 맨 앞 /를 제거해서
+"login"처럼 상대 경로로 만든 다음
+Path.of("webapp", path.substring(1))로 합치면
+자동으로 webapp/login이 만들어짐.
+
+
 ### 요구사항 2 - get 방식으로 회원가입
 * 
 
