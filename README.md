@@ -36,7 +36,21 @@
 
 
 ### 요구사항 2 - get 방식으로 회원가입
-* 
+#### 핵심 흐름 요약
+* 회원가입 폼 제출 시 서버로 “HTTP 요청 메시지”가 들어온다.
+  * 요청 첫 줄 형식: METHOD URL HTTP/버전
+  * 예: GET /user/create?userId=...&password=...&name=...&email=... HTTP/1.1
+* 서버는 첫 줄에서 URL만 뽑고, `?` 기준으로 경로와 쿼리스트링을 분리한다.
+  * 경로: /user/create
+  * 쿼리스트링: userId=...&password=...&name=...&email=...
+* 쿼리스트링은 `HttpRequestUtils.parseQueryString`으로 Map으로 파싱한다.
+  * params.get("userId") 형태로 값 추출 가능
+* 추출한 값으로 `User` 객체를 생성해 파싱이 정상인지 로그로 확인한다.
+  * URL 인코딩(%40 = @)은 디코딩 단계에서 처리 가능
+
+#### 현재 응답 방식
+* 회원가입 처리 후에는 `/index.html`을 내려주도록 URL을 바꿔 정적 파일을 응답한다.
+* 정적 파일 응답은 `Files.readAllBytes`로 읽고 200 OK 헤더 + 바디를 전송한다.
 
 ### 요구사항 3 - post 방식으로 회원가입
 * 
