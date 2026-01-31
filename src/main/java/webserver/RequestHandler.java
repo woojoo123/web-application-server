@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import model.User;
 import util.HttpRequestUtils;
+import util.IOUtils;
 
 public class RequestHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
@@ -34,26 +35,57 @@ public class RequestHandler extends Thread {
              OutputStream out = connection.getOutputStream()) {
 
             BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
-            String line = br.readLine();
-            if (line == null) return;
+            
+            // 1) 요청 첫 줄 읽기
+            String requestLine = br.readLine();
+            if (requestLine == null || requestLine.isBlank()) {
+                return;
+            }
+            
+            String[] parts = requestLine.split(" ");
+            String method = parts[0];
+            String url = parts[1];
 
-            String url = HttpRequestUtils.getUrl(line);
-            if (url.startsWith("/user/create")) {
-                int index = url.indexOf("?");
-                String queryString = url.substring(index + 1);
-                Map<String, String> params = HttpRequestUtils.parseQueryString(queryString);
-                User user = new User(params.get("userId"), params.get("password"), params.get("name"), params.get("email"));
-                log.debug("User : {}", user);
-                url = "/index.html";
+            // 2) 헤더 읽고 Content-Length 찾기
+            int contentLength = 0;
+            requestLine = br.readLine();
+            while (requestLine != null && !requestLine.isEmpty()) {
+                log.debug("header : {}", requestLine);
+                if (requestLine.startsWith("Content-Length:")) {
+                    contentLength = getContentLength(requestLine);
+                }
+                requestLine = br.readLine();
             }
 
+            // 3) POST /user/create 처리
+            if ("POST".equals(method) && url.startsWith("/user/create")) {
+                String requestBody = IOUtils.readData(br, contentLength);
+                Map<String, String> params = HttpRequestUtils.parseQueryString(requestBody);
+                User user = new User(
+                    params.get("userId"),
+                    params.get("password"),
+                    params.get("name"),
+                    params.get("email")
+                );
+                log.debug("User : {}", user);
+                url = "index.html";
+            }
+
+            // 정적 파일 응답
+            if ("/".equals(url)) url = "index.html";
+
             DataOutputStream dos = new DataOutputStream(out);
-            byte[] body = Files.readAllBytes(Path.of("webapp", url.substring(1)));
+            byte[] body = Files.readAllBytes(Path.of("webapp", url));
             response200Header(dos, body.length);
             responseBody(dos, body);
         } catch (IOException e) {
             log.error(e.getMessage());
         }
+    }
+
+    private int getContentLength(String line) {
+        String headTokens[] = line.split(":");
+        return Integer.parseInt(headTokens[1].trim());
     }
 
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {

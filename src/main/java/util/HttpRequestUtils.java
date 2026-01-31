@@ -15,14 +15,6 @@ import webserver.RequestHandler;
 public class HttpRequestUtils {
     private static final Logger log = LoggerFactory.getLogger(HttpRequestUtils.class);
 
-    public static String getUrl(String requestLine) {
-        String [] parts = requestLine.split(" ");
-        String method = parts[0];
-        String path = parts[1];
-        log.debug("method={}, path={}", method, path);
-        return path;
-    }
-
     /**
      * @param queryString은
      *            URL에서 ? 이후에 전달되는 field1=value1&field2=value2 형식임
