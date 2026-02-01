@@ -50,12 +50,14 @@ public class RequestHandler extends Thread {
             int contentLength = 0;
             requestLine = br.readLine();
             while (requestLine != null && !requestLine.isEmpty()) {
-                log.debug("header : {}", requestLine);
                 if (requestLine.startsWith("Content-Length:")) {
                     contentLength = getContentLength(requestLine);
                 }
                 requestLine = br.readLine();
             }
+            
+            // 정적 파일 응답
+            if ("/".equals(url)) url = "index.html";
 
             // 3) POST /user/create 처리
             if ("POST".equals(method) && url.startsWith("/user/create")) {
@@ -68,16 +70,24 @@ public class RequestHandler extends Thread {
                     params.get("email")
                 );
                 log.debug("User : {}", user);
-                url = "index.html";
+                DataOutputStream dos = new DataOutputStream(out);
+                response302Header(dos);
+            } else {
+                DataOutputStream dos = new DataOutputStream(out);
+                byte[] body = Files.readAllBytes(Path.of("webapp", url));
+                response200Header(dos, body.length);
+                responseBody(dos, body);
             }
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
 
-            // 정적 파일 응답
-            if ("/".equals(url)) url = "index.html";
-
-            DataOutputStream dos = new DataOutputStream(out);
-            byte[] body = Files.readAllBytes(Path.of("webapp", url));
-            response200Header(dos, body.length);
-            responseBody(dos, body);
+    private void response302Header(DataOutputStream dos) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Location: /index.html\r\n");
+            dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.error(e.getMessage());
         }
