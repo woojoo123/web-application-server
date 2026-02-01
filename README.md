@@ -53,10 +53,36 @@
 * 정적 파일 응답은 `Files.readAllBytes`로 읽고 200 OK 헤더 + 바디를 전송한다.
 
 ### 요구사항 3 - post 방식으로 회원가입
-* 
+#### 요구사항 2(GET)와 달라진 점
+* 파라미터 위치가 **URL → Body**로 이동한다.
+  * GET: `/user/create?userId=...&password=...`
+  * POST: `POST /user/create` + body에 `userId=...&password=...`
+* 따라서 URL이 아니라 **요청 바디를 읽어 파싱**해야 한다.
+  * 헤더 끝(빈 줄)까지 읽고 `Content-Length` 값을 얻는다.
+  * 그 길이만큼 body를 읽어서 `parseQueryString`으로 Map 변환한다.
+* 메서드 분기가 필요하다.
+  * GET/POST를 구분해서 **POST일 때만** body를 읽는다.
 
 ### 요구사항 4 - redirect 방식으로 이동
-* 
+#### 핵심 규칙 1가지
+* HTTP는 “요청 1번 → 응답 1번”이 기본 단위다.
+* 302는 “/index.html로 가라”는 **새 요청 유도 응답**이지, index.html을 직접 담아 보내는 응답이 아니다.
+
+#### 헷갈렸던 질문에 대한 결론
+* Q: “302에는 바디가 없다면서, index.html 바이트는 어디서 읽어 보내나?”
+* A: **/index.html 요청을 처리하는 정적 파일 로직에서 읽어 보낸다.**
+
+#### 실제 흐름은 ‘두 번 요청’
+* (1) 회원가입 요청
+  * 브라우저 → 서버: `POST /user/create`
+  * 서버는 회원가입 처리 후 **302 응답**만 보냄
+* (2) 리다이렉트로 인한 새 요청
+  * 브라우저가 `Location: /index.html`을 보고 **GET /index.html**을 새로 요청
+  * 서버가 여기서 `index.html`을 읽어 200 OK로 응답
+
+#### 비교 정리
+* 200으로 index.html을 바로 내려주면: 요청 1번으로 끝
+* 302 리다이렉트이면: **요청이 2번 발생**
 
 ### 요구사항 5 - cookie
 * 
