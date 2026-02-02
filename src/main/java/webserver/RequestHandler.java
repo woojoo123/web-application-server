@@ -30,8 +30,8 @@ public class RequestHandler extends Thread {
     }
 
     public void run() {
-        log.debug("New Client Connect! Connected IP : {}, Port : {}", connection.getInetAddress(),
-                connection.getPort());
+        log.debug("New Client Connect! Connected IP : {}, Port : {}", 
+                    connection.getInetAddress(), connection.getPort());
 
         try (InputStream in = connection.getInputStream();
              OutputStream out = connection.getOutputStream()) {
@@ -44,7 +44,7 @@ public class RequestHandler extends Thread {
                 return;
             }
             
-            String[] parts = requestLine.split(" ");
+            String[] parts = parseRequestLine(requestLine);
             String method = parts[0];
             String url = parts[1];
 
@@ -123,19 +123,30 @@ public class RequestHandler extends Thread {
                     response200Header(dos, body.length);
                     responseBody(dos, body);
                 }
+
             } else if (url.endsWith(".css")) {
                 DataOutputStream dos = new DataOutputStream(out);
                 if (url.startsWith("/")) url = url.substring(1);
                 byte[] body = Files.readAllBytes(Path.of("webapp", url));
                 response200CssHeader(dos, body.length);
                 responseBody(dos, body);
+
             } else {
                 responseResource(out, url);
             }
+
         } catch (IOException e) {
             log.error(e.getMessage());
         }
     }
+
+    private String[] parseRequestLine(String requestLine) throws IOException {
+    String[] parts = requestLine.split(" ");
+    if (parts.length < 2) {
+        throw new IOException("Invalid request line: " + requestLine);
+    }
+    return parts;
+}
 
     private void responseResource(OutputStream out, String url) throws IOException {
         DataOutputStream dos = new DataOutputStream(out);
