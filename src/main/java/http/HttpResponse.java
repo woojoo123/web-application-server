@@ -23,28 +23,27 @@ public class HttpResponse {
     }
 
     // 200 OK 응답
-    public void forward(String url) throws IOException {
-        headers.clear();
+    public void forward(String url) {
+        try {
+            if (url.startsWith("/")) url = url.substring(1);
+            byte[] body = Files.readAllBytes(Path.of("webapp", url));
 
-        if (url.startsWith("/")) url = url.substring(1);
-        byte[] body = Files.readAllBytes(Path.of("webapp", url));
-
-        if (url.endsWith(".css")) {
-            addHeader("Content-Type", "text/css");
-        } else if (url.endsWith(".js")) {
-            addHeader("Content-Type", "application/javascript");
-        } else {
-            addHeader("Content-Type", "text/html;charset=utf-8");
+            if (url.endsWith(".css")) {
+                addHeader("Content-Type", "text/css");
+            } else if (url.endsWith(".js")) {
+                addHeader("Content-Type", "application/javascript");
+            } else {
+                addHeader("Content-Type", "text/html;charset=utf-8");
+            }
+            addHeader("Content-Length", body.length + "");
+            response200Header();
+            responseBody(body);
+        } catch (IOException e) {
+            log.error(e.getMessage());
         }
-        addHeader("Content-Length", body.length + "");
-
-        response200Header();
-        responseBody(body);
     }
 
     public void forwardBody(String body) throws IOException {
-        headers.clear();
-
         byte[] contents = body.getBytes("UTF-8");
         addHeader("Content-Type", "text/html;charset=utf-8");
         addHeader("Content-Length", contents.length + "");
@@ -54,31 +53,26 @@ public class HttpResponse {
     }
 
     // 302 리다이렉트
-    public void sendRedirect(String redirectUrl) throws IOException {
-        headers.clear();
-
+    public void sendRedirect(String redirectUrl) {
         try {
             dos.writeBytes("HTTP/1.1 302 Found \r\n");
-            addHeader("Location", redirectUrl);
-            addHeader("Content-Length", "0");
-            processHeaders();
+            dos.writeBytes("Location: " + redirectUrl + "\r\n");
             dos.writeBytes("\r\n");
-            dos.flush();
     } catch (IOException e) {
             log.error(e.getMessage());
         }
     }
-        
-    
 
-
-    private void responseBody(byte[] body) throws IOException {
-        dos.write(body, 0, body.length);
-        dos.writeBytes("\r\n");
-        dos.flush();
+    private void responseBody(byte[] body) {
+        try {
+            dos.write(body, 0, body.length);
+            dos.flush();
+    } catch (IOException e) {
+        log.error(e.getMessage());
     }
+}
 
-    private void addHeader(String key, String value) {
+    public void addHeader(String key, String value) {
         headers.put(key, value);
     }
 
@@ -97,5 +91,4 @@ public class HttpResponse {
             dos.writeBytes(h.getKey() + ": " + h.getValue() + "\r\n");
             }
     }
-
 }
